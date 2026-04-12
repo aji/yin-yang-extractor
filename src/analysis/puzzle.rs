@@ -1,11 +1,20 @@
-use crate::{
-    AnalyzeCells,
-    grid::{Cell, Grid},
+use std::fmt;
+
+use pzpr_codec::{
+    grid::{Grid, Gridlike},
+    variety::yinyang::Cell,
 };
 
-#[derive(Debug)]
+use crate::AnalyzeCells;
+
 pub struct AnalyzePuzzle {
-    pub grid: Grid,
+    pub grid: Grid<Cell>,
+}
+
+impl fmt::Debug for AnalyzePuzzle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AnalyzePuzzle").finish_non_exhaustive()
+    }
 }
 
 pub fn analyze_puzzle(cells: &AnalyzeCells) -> AnalyzePuzzle {
@@ -13,9 +22,9 @@ pub fn analyze_puzzle(cells: &AnalyzeCells) -> AnalyzePuzzle {
     let empty1 = make_grid(cells, 1, 2, 0);
     let empty2 = make_grid(cells, 2, 0, 1);
 
-    let empty0_valid = empty0.is_valid();
-    let empty1_valid = empty1.is_valid();
-    let empty2_valid = empty2.is_valid();
+    let empty0_valid = is_valid(&empty0);
+    let empty1_valid = is_valid(&empty1);
+    let empty2_valid = is_valid(&empty2);
 
     let grid = match (empty0_valid, empty1_valid, empty2_valid) {
         (true, false, false) => empty0,
@@ -37,7 +46,7 @@ pub fn analyze_puzzle(cells: &AnalyzeCells) -> AnalyzePuzzle {
     AnalyzePuzzle { grid }
 }
 
-fn make_grid(cells: &AnalyzeCells, empty: usize, color_a: usize, color_b: usize) -> Grid {
+fn make_grid(cells: &AnalyzeCells, empty: usize, color_a: usize, color_b: usize) -> Grid<Cell> {
     let (black, white) = {
         let color_a_sum: f32 = cells.centroids[color_a].data.iter().sum();
         let color_b_sum: f32 = cells.centroids[color_b].data.iter().sum();
@@ -47,19 +56,31 @@ fn make_grid(cells: &AnalyzeCells, empty: usize, color_a: usize, color_b: usize)
         }
     };
 
-    let mut grid = Grid::new(cells.cells.len() / cells.cols, cells.cols);
+    let rows = (cells.cells.len() / cells.cols) as isize;
+    let cols = cells.cols as isize;
 
-    for r in 0..grid.rows() {
-        for c in 0..grid.cols() {
-            let i = r * grid.cols() + c;
-            grid[(r, c)] = match cells.cell_classes[i] {
-                i if i == empty => Cell::Empty,
-                i if i == black => Cell::Black,
-                i if i == white => Cell::White,
-                i => panic!("unknown cell class: {i}"),
+    cells
+        .cell_classes
+        .iter()
+        .map(|cls| match *cls {
+            i if i == empty => Cell::Empty,
+            i if i == black => Cell::Black,
+            i if i == white => Cell::White,
+            i => panic!("unknown cell class {i}"),
+        })
+        .collect::<Grid<Cell>>()
+        .reshape(rows, cols)
+        .unwrap()
+}
+
+fn is_valid(grid: &Grid<Cell>) -> bool {
+    for r in 1..grid.shape().rows() {
+        for c in 1..grid.shape().cols() {
+            let g = grid.view(r - 1, c - 1, 2, 2);
+            if g[0] == g[1] && g[0] == g[2] && g[0] == g[3] && g[0] != Cell::Empty {
+                return false;
             }
         }
     }
-
-    grid
+    true
 }

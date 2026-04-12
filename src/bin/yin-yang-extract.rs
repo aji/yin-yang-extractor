@@ -1,14 +1,52 @@
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use image::{ImageFormat, ImageReader, Rgb, RgbImage, buffer::ConvertBuffer};
-use yin_yang_extractor::Cell;
+use pzpr_codec::{
+    grid::{Grid, Gridlike},
+    variety::yinyang::{self, Cell},
+};
 
 #[derive(Parser)]
 struct Cli {
     #[arg(value_name = "INPUT")]
     input: String,
 
+    #[arg(short, long)]
+    format: Option<OutputFormat>,
+
     #[arg(long)]
     debug_output: Option<String>,
+}
+
+#[derive(Copy, Clone, Debug, ValueEnum)]
+enum OutputFormat {
+    Ascii,
+    Url,
+}
+
+impl OutputFormat {
+    fn display(&self, grid: &Grid<Cell>) {
+        match self {
+            OutputFormat::Ascii => {
+                for r in 0..grid.shape().rows() {
+                    for c in 0..grid.shape().cols() {
+                        if c != 0 {
+                            print!(" ");
+                        }
+                        match grid.rc(r, c) {
+                            Cell::Empty => print!("."),
+                            Cell::Black => print!("B"),
+                            Cell::White => print!("W"),
+                        }
+                    }
+                    println!("");
+                }
+            }
+            OutputFormat::Url => {
+                let pzpr = yinyang::encode(grid).unwrap();
+                println!("https://puzz.link/p?{pzpr}");
+            }
+        }
+    }
 }
 
 fn main() {
@@ -67,9 +105,9 @@ fn main() {
         }
 
         for (i, _) in cells.cell_classes.iter().enumerate() {
-            let cell_row = i / cells.cols;
-            let cell_col = i % cells.cols;
-            let color: Rgb<u8> = match puzzle.grid[(cell_row, cell_col)] {
+            let cell_row = (i / cells.cols) as isize;
+            let cell_col = (i % cells.cols) as isize;
+            let color: Rgb<u8> = match puzzle.grid.rc(cell_row, cell_col) {
                 Cell::Empty => [0, 255, 0].into(),
                 Cell::Black => [0, 0, 255].into(),
                 Cell::White => [255, 0, 0].into(),
@@ -90,5 +128,7 @@ fn main() {
         log::info!("wrote debug output to {out_fname}");
     }
 
-    print!("{}", puzzle.grid);
+    cli.format
+        .unwrap_or(OutputFormat::Ascii)
+        .display(&puzzle.grid);
 }

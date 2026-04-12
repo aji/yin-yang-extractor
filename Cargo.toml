@@ -7,11 +7,12 @@ edition = "2024"
 clap = { version = "4.6.0", features = ["derive"], optional = true }
 env_logger = { version = "0.11.10", optional = true }
 image = "0.25.10"
-log = { version = "0.4.29", optional = true }
+log = { version = "0.4.29" }
+pzpr-codec = { git = "https://github.com/aji/pzpr-codec.git" }
 rand = "0.10.0"
 
 [features]
-cli = ["dep:clap", "dep:log", "dep:env_logger"]
+cli = ["dep:clap", "dep:env_logger"]
 
 [[bin]]
 name = "yin-yang-extract"

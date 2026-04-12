@@ -925,6 +925,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5a041e753da8b807c9255f28de81879c78c876392ff2469cde94799b2896b9d"
 
 [[package]]
+name = "pzpr-codec"
+version = "0.1.0"
+source = "git+https://github.com/aji/pzpr-codec.git#47ed5c06e01555f8c9eb82d1f5bea291a6536a21"
+
+[[package]]
 name = "qoi"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1498,6 +1503,7 @@ dependencies = [
  "env_logger",
  "image",
  "log",
+ "pzpr-codec",
  "rand 0.10.0",
 ]
 
