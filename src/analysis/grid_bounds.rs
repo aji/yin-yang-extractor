@@ -63,10 +63,10 @@ fn score_params(axis: &AnalyzeReducedAxis, pitch: f32, offset: usize, count: usi
     let sampler = ZeroSampler::new(0.0, &axis.laplace_sq.data[..]);
     let mut total = 0.0;
     for gridline_index in 0..=count {
-        let i = (offset as f32 + gridline_index as f32 * pitch).round() as isize;
+        let i = offset as f32 + gridline_index as f32 * pitch;
         total += (-10..=10)
             .map(|j| {
-                let val = if *sampler.get(i + j) < axis.laplace_sq.mean {
+                let val = if sampler.get_linear(i + j as f32) < axis.laplace_sq.mean {
                     0.0
                 } else {
                     1.0
