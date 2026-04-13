@@ -31,6 +31,15 @@ impl<'a, T> HoldSampler<'a, T> {
     }
 }
 
+impl<'a> HoldSampler<'a, f32> {
+    pub fn get_linear(&self, idx: f32) -> f32 {
+        let x0 = *self.get(idx.floor() as isize);
+        let x1 = *self.get(idx.ceil() as isize);
+        let f = idx.fract();
+        x0 * (1.0 - f) + x1 * f
+    }
+}
+
 pub struct ZeroSampler<'a, T> {
     zero: T,
     inner: &'a [T],
@@ -50,6 +59,21 @@ impl<'a, T> ZeroSampler<'a, T> {
         } else {
             &self.inner[idx as usize]
         }
+    }
+}
+
+impl<'a> ZeroSampler<'a, f32> {
+    pub fn get_linear(&self, idx: f32) -> f32 {
+        let x0 = *self.get(idx.floor() as isize);
+        let x1 = *self.get(idx.ceil() as isize);
+        let f = idx.fract();
+        x0 * (1.0 - f) + x1 * f
+    }
+
+    pub fn get_linear_grad(&self, idx: f32) -> f32 {
+        let x0 = *self.get(idx.floor() as isize);
+        let x1 = *self.get(idx.ceil() as isize);
+        x1 - x0
     }
 }
 

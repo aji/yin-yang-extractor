@@ -2,7 +2,7 @@ use image::GrayImage;
 
 use crate::{
     AnalyzeGridCommon, AnalyzeReducedAxis,
-    math::{self},
+    math::{self, Array},
 };
 
 #[derive(Debug)]
