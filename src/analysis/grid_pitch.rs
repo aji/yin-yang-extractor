@@ -2,7 +2,7 @@ use image::GrayImage;
 
 use crate::{
     AnalyzeGridCommon, AnalyzeReducedAxis,
-    math::{self, ZeroSampler},
+    math::{self, Array},
 };
 
 #[derive(Debug)]
@@ -22,48 +22,36 @@ pub fn analyze_grid_pitch(_img: &GrayImage, common: &AnalyzeGridCommon) -> Analy
 }
 
 fn analyze_grid_pitch_axis(axis: &AnalyzeReducedAxis) -> f32 {
-    let peak = (math::argmax(&axis.laplace_autocorr.data[2..]) + 2) as f32;
-    let subharms = ((peak / 10.0).round() as usize).max(1).min(10);
+    let mut tot_pitch = (math::argmax(&axis.laplace_autocorr.data[2..100]) + 2) as f32;
+    let mut num_pitch = 1.0;
 
-    let data = ZeroSampler::new(0.0, &axis.laplace_autocorr.data[..]);
-    let (pitch, score) = (1..=subharms)
-        .map(|x| {
-            let x = x as f32;
-            let (pitch, score) = refine_pitch(&data, peak / x);
-            (pitch, score * x)
-        })
-        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-        .unwrap();
-
-    log::debug!("done: pitch={} score={}", pitch, score);
-    pitch
-}
-
-fn refine_pitch(data: &ZeroSampler<f32>, init: f32) -> (f32, f32) {
-    let mut pitch = init;
-
-    for iter in 0.. {
-        let mut total_y = 0.0;
-        let mut total_dy = 0.0;
-
-        for i in 1.. {
-            let x = pitch * i as f32;
-            if x > data.len() as f32 {
-                break;
-            }
-            let (y, dy) = data.get_linear_grad(pitch);
-            total_y += y;
-            total_dy += dy;
+    let _ = {
+        // dumb hack to check if pitch/2 is a possibility. sometimes the argmax is the 2nd peak
+        let pitch = tot_pitch / num_pitch;
+        let idx_a = (pitch * 0.4).round() as usize;
+        let idx_b = (pitch * 0.6).round() as usize;
+        let idx = math::argmax(&axis.laplace_autocorr.data[idx_a..idx_b]) + idx_a;
+        if axis.laplace_autocorr.data[idx] * 3.0 > axis.laplace_autocorr.data[tot_pitch as usize] {
+            tot_pitch = idx as f32;
         }
+    };
 
-        if iter > 1000 {
-            return (pitch, total_y);
-        } else {
-            pitch += 0.001 * total_dy;
-        }
+    log::debug!("pitch={} (init)", tot_pitch / num_pitch);
+
+    let mut refine = 2.0f32;
+    let max_refine = (axis.laplace_autocorr.data.len() as f32) / 2.0;
+    while (tot_pitch / num_pitch) * refine < max_refine {
+        let pitch = tot_pitch / num_pitch;
+        let idx_a = (pitch * (refine - 0.25)).round() as usize;
+        let idx_b = (pitch * (refine + 0.25)).round() as usize;
+        let next = math::argmax(&axis.laplace_autocorr.data[idx_a..idx_b]) + idx_a;
+        tot_pitch += next as f32 / refine;
+        num_pitch += 1.0;
+        log::debug!("refine={} pitch={}", refine, tot_pitch / num_pitch);
+        refine += 1.0;
     }
 
-    unreachable!()
+    tot_pitch / num_pitch
 }
 
 fn make_square(a: f32, b: f32) -> f32 {

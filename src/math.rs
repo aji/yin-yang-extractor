@@ -50,10 +50,6 @@ impl<'a, T> ZeroSampler<'a, T> {
         ZeroSampler { zero, inner }
     }
 
-    pub fn len(&self) -> usize {
-        self.inner.len()
-    }
-
     pub fn get<'s>(&'s self, idx: isize) -> &'a T
     where
         's: 'a,
@@ -74,12 +70,10 @@ impl<'a> ZeroSampler<'a, f32> {
         x0 * (1.0 - f) + x1 * f
     }
 
-    pub fn get_linear_grad(&self, idx: f32) -> (f32, f32) {
+    pub fn get_linear_grad(&self, idx: f32) -> f32 {
         let x0 = *self.get(idx.floor() as isize);
         let x1 = *self.get(idx.ceil() as isize);
-        let f = idx.fract();
-        let m = x1 - x0;
-        (x0 - f * m, m)
+        x1 - x0
     }
 }
 
