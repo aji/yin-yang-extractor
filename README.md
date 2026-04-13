@@ -108,8 +108,7 @@ one of the grids will be valid, and this is the grid returned as output.
 - The cell size detection and grid bounds detection are very fiddly. For best
   results, the input image should be cropped as close as possible to the puzzle
   grid itself.
-- The k-means in the cell analysis step is wrong sometimes, e.g. putting all
-  empty and white cells into one class and splitting the black cells into the
-  other two classes. This could possibly be improved by running k-means multiple
-  times or by choosing a different analysis strategy, but it works well enough
-  at the moment.
+- In general it's assumed that there are 3 cell types in the input: empty,
+  black, and white. For puzzles that only have one color of given, or for
+  puzzles in a solved state (i.e. no empty cells), the analysis will fail,
+  perhaps silently.
