@@ -3,9 +3,8 @@ use std::fmt;
 use image::GrayImage;
 
 use crate::{
-    math::Array,
+    math::{self, Array, HoldSampler},
     pixel::PixelExt,
-    signal::{self, HoldSampler},
 };
 
 #[derive(Debug)]
@@ -68,7 +67,7 @@ impl AnalyzeReducedAxis {
             .collect();
 
         let laplace_sq: Vec<f32> = laplace.iter().map(|x| x.powi(2)).collect();
-        let laplace_autocorr: Vec<f32> = signal::naive_forward_autocorr(&laplace[..]);
+        let laplace_autocorr: Vec<f32> = math::naive_forward_autocorr(&laplace[..]);
 
         AnalyzeReducedAxis {
             values: Array::new(values),

@@ -1,8 +1,8 @@
 use image::GrayImage;
 
 use crate::{
-    AnalyzeGridCommon, AnalyzeGridPitch, AnalyzeReducedAxis, geom, math::standard_normal,
-    signal::ZeroSampler,
+    AnalyzeGridCommon, AnalyzeGridPitch, AnalyzeReducedAxis, geom,
+    math::{ZeroSampler, standard_normal},
 };
 
 #[derive(Debug)]

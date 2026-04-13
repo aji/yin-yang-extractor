@@ -1,6 +1,9 @@
 use image::GrayImage;
 
-use crate::{AnalyzeGridCommon, AnalyzeReducedAxis, signal};
+use crate::{
+    AnalyzeGridCommon, AnalyzeReducedAxis,
+    math::{self},
+};
 
 #[derive(Debug)]
 pub struct AnalyzeGridPitch {
@@ -19,7 +22,7 @@ pub fn analyze_grid_pitch(_img: &GrayImage, common: &AnalyzeGridCommon) -> Analy
 }
 
 fn analyze_grid_pitch_axis(axis: &AnalyzeReducedAxis) -> f32 {
-    let mut tot_pitch = (signal::argmax(&axis.laplace_autocorr.data[2..100]) + 2) as f32;
+    let mut tot_pitch = (math::argmax(&axis.laplace_autocorr.data[2..100]) + 2) as f32;
     let mut num_pitch = 1.0;
 
     let _ = {
@@ -27,7 +30,7 @@ fn analyze_grid_pitch_axis(axis: &AnalyzeReducedAxis) -> f32 {
         let pitch = tot_pitch / num_pitch;
         let idx_a = (pitch * 0.4).round() as usize;
         let idx_b = (pitch * 0.6).round() as usize;
-        let idx = signal::argmax(&axis.laplace_autocorr.data[idx_a..idx_b]) + idx_a;
+        let idx = math::argmax(&axis.laplace_autocorr.data[idx_a..idx_b]) + idx_a;
         if axis.laplace_autocorr.data[idx] * 3.0 > axis.laplace_autocorr.data[tot_pitch as usize] {
             tot_pitch = idx as f32;
         }
@@ -41,7 +44,7 @@ fn analyze_grid_pitch_axis(axis: &AnalyzeReducedAxis) -> f32 {
         let pitch = tot_pitch / num_pitch;
         let idx_a = (pitch * (refine - 0.25)).round() as usize;
         let idx_b = (pitch * (refine + 0.25)).round() as usize;
-        let next = signal::argmax(&axis.laplace_autocorr.data[idx_a..idx_b]) + idx_a;
+        let next = math::argmax(&axis.laplace_autocorr.data[idx_a..idx_b]) + idx_a;
         tot_pitch += next as f32 / refine;
         num_pitch += 1.0;
         log::debug!("refine={} pitch={}", refine, tot_pitch / num_pitch);
