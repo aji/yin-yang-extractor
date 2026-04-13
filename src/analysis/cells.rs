@@ -1,7 +1,6 @@
 use std::fmt;
 
 use image::GrayImage;
-use rand::seq::IndexedRandom;
 
 use crate::{AnalyzeGridBounds, AnalyzeGridPitch, pixel::PixelExt};
 
@@ -12,6 +11,7 @@ pub struct AnalyzeCells {
     pub cell_classes: Vec<usize>,
 }
 
+#[derive(Clone)]
 pub struct AnalyzeCell {
     pub data: Vec<f32>,
 }
@@ -46,14 +46,7 @@ pub fn analyze_cells(
         }
     }
 
-    let mut centroids = vec![
-        AnalyzeCell::new((0..cell_w * cell_h).map(|_| rand::random()).collect()),
-        AnalyzeCell::new((0..cell_w * cell_h).map(|_| rand::random()).collect()),
-        AnalyzeCell::new((0..cell_w * cell_h).map(|_| rand::random()).collect()),
-    ];
-    log::debug!("{}", cells[0].data.len());
-    log::debug!("{}", centroids[0].data.len());
-    let classes = k_means(&mut centroids[..], &cells[..]);
+    let (centroids, classes) = make_centroids(&cells[..]);
 
     AnalyzeCells {
         cols: cell_cols,
@@ -63,46 +56,162 @@ pub fn analyze_cells(
     }
 }
 
-fn k_means(centroids: &mut [AnalyzeCell], cells: &[AnalyzeCell]) -> Vec<usize> {
-    let mut classes: Vec<usize> = (0..cells.len()).map(|_| centroids.len()).collect();
+fn make_centroids(cells: &[AnalyzeCell]) -> (Vec<AnalyzeCell>, Vec<usize>) {
+    let dim = cells[0].data.len();
 
-    loop {
-        let mut changed = false;
-        for (i, cell) in cells.iter().enumerate() {
-            let closest = cell.closest(centroids);
-            if closest != classes[i] {
-                classes[i] = closest;
-                changed = true;
+    let mut centroids = CentroidSet::new(cells);
+    let mut classes: Vec<usize> = (0..cells.len()).collect();
+
+    while centroids.num_centroids() > 3 {
+        let (i, j) = centroids.argmin_distinct();
+        assert!(i < j);
+
+        // merge class j into class i
+        for cls in classes.iter_mut() {
+            if *cls == j {
+                *cls = i;
             }
         }
-        for (i, centroid) in centroids.iter_mut().enumerate() {
-            let mut n = 0;
-            for x in centroid.data.iter_mut() {
-                *x = 0.0;
-            }
-            for (class, cell) in classes.iter().zip(cells.iter()) {
-                if *class == i {
-                    for (x, y) in centroid.data.iter_mut().zip(cell.data.iter()) {
-                        *x += y;
-                    }
-                    n += 1;
-                }
-            }
-            if n == 0 {
-                changed = true;
-                centroid.data = cells.choose(&mut rand::rng()).unwrap().data.clone();
-            } else {
-                for x in centroid.data.iter_mut() {
-                    *x /= n as f32;
-                }
+
+        // delete centroid for class j
+        let k = centroids.num_centroids() - 1;
+        centroids.swap(j, k);
+        centroids.truncate(k);
+        for cls in classes.iter_mut() {
+            if *cls == k {
+                *cls = j;
             }
         }
-        if !changed {
-            break;
+
+        // update centroid for class i
+        let updated = {
+            let mut count = 0;
+            let mut updated = AnalyzeCell::zero(dim);
+            for (idx, cls) in classes.iter().enumerate() {
+                if *cls == i {
+                    count += 1;
+                    updated.add(&cells[idx]);
+                }
+            }
+            if count == 0 {
+                eprintln!("nobody in {i}");
+            }
+            updated.mul_scalar(1.0 / count as f32);
+            updated
+        };
+        centroids.set(i, updated);
+    }
+
+    (centroids.centroids, classes)
+}
+
+struct CentroidSet {
+    centroids: Vec<AnalyzeCell>,
+    distances: Vec<Vec<f32>>,
+}
+
+impl CentroidSet {
+    fn new(cells: &[AnalyzeCell]) -> CentroidSet {
+        let centroids: Vec<AnalyzeCell> = cells.iter().cloned().collect();
+
+        let distances = {
+            let mut distances: Vec<Vec<f32>> = Vec::new();
+            for i in 0..cells.len() {
+                let mut row: Vec<f32> = Vec::new();
+                for j in 0..cells.len() {
+                    let dist = centroids[i].distance(&centroids[j]);
+                    row.push(dist);
+                }
+                distances.push(row);
+            }
+            distances
+        };
+
+        CentroidSet {
+            centroids,
+            distances,
         }
     }
 
-    classes
+    #[allow(unused)]
+    fn dump_distances(&self) {
+        eprint!("[");
+        for (i, row) in self.distances.iter().enumerate() {
+            if i != 0 {
+                eprint!(",");
+            }
+            eprint!("[");
+            for (j, col) in row.iter().enumerate() {
+                if j != 0 {
+                    eprint!(",");
+                }
+                eprint!("{col:6.1}");
+            }
+            eprintln!("]");
+        }
+        eprintln!("]");
+    }
+
+    fn num_centroids(&self) -> usize {
+        self.centroids.len()
+    }
+
+    fn swap(&mut self, i: usize, j: usize) {
+        if i == j {
+            return;
+        }
+
+        self.centroids.swap(i, j);
+
+        for k in 0..self.num_centroids() {
+            if k != i && k != j {
+                let self_distances_x = self.distances[i][k];
+                self.distances[i][k] = self.distances[j][k];
+                self.distances[j][k] = self_distances_x;
+
+                let self_distances_x = self.distances[k][i];
+                self.distances[k][i] = self.distances[k][j];
+                self.distances[k][j] = self_distances_x;
+            } else {
+                // the (i,i) and (i,j) entries do not need to be changed
+            }
+        }
+    }
+
+    fn truncate(&mut self, n: usize) {
+        self.distances.truncate(n);
+        self.centroids.truncate(n);
+        for dist in self.distances.iter_mut() {
+            dist.truncate(n);
+        }
+    }
+
+    fn set(&mut self, i: usize, data: AnalyzeCell) {
+        self.centroids[i] = data;
+
+        for j in 0..self.num_centroids() {
+            if i != j {
+                let dist = self.centroids[i].distance(&self.centroids[j]);
+                self.distances[i][j] = dist;
+                self.distances[j][i] = dist;
+            }
+        }
+    }
+
+    fn argmin_distinct(&self) -> (usize, usize) {
+        let mut best_i = (0, 0);
+        let mut best_x = std::f32::INFINITY;
+        for i in 0..self.num_centroids() {
+            for j in i + 1..self.num_centroids() {
+                let dist = self.distances[i][j];
+                if dist < best_x {
+                    best_i = (i, j);
+                    best_x = dist;
+                }
+            }
+        }
+        best_i
+    }
 }
 
 impl fmt::Debug for AnalyzeCells {
@@ -118,25 +227,29 @@ impl AnalyzeCell {
         AnalyzeCell { data }
     }
 
+    fn zero(n: usize) -> AnalyzeCell {
+        AnalyzeCell::new((0..n).map(|_| 0.0).collect())
+    }
+
+    fn add(&mut self, other: &AnalyzeCell) {
+        assert_eq!(self.data.len(), other.data.len());
+        for (x, y) in self.data.iter_mut().zip(other.data.iter()) {
+            *x += *y;
+        }
+    }
+
+    fn mul_scalar(&mut self, other: f32) {
+        for x in self.data.iter_mut() {
+            *x *= other;
+        }
+    }
+
     fn distance(&self, other: &AnalyzeCell) -> f32 {
         self.data
             .iter()
             .zip(other.data.iter())
             .map(|(a, b)| (a - b).powi(2))
             .sum()
-    }
-
-    fn closest(&self, others: &[AnalyzeCell]) -> usize {
-        let mut closest_i = 0;
-        let mut closest_d = others[0].distance(self);
-        for i in 1..others.len() {
-            let d = others[i].distance(self);
-            if d < closest_d {
-                closest_i = i;
-                closest_d = d;
-            }
-        }
-        closest_i
     }
 }
 
