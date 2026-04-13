@@ -1,9 +1,6 @@
 use image::GrayImage;
 
-use crate::{
-    AnalyzeGridCommon, AnalyzeReducedAxis,
-    math::{self, Array},
-};
+use crate::{AnalyzeGridCommon, AnalyzeReducedAxis, math};
 
 #[derive(Debug)]
 pub struct AnalyzeGridPitch {
