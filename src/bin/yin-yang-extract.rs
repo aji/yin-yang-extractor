@@ -1,9 +1,10 @@
 use clap::{Parser, ValueEnum};
-use image::{ImageFormat, ImageReader, Rgb, RgbImage, buffer::ConvertBuffer};
+use image::{GrayImage, ImageFormat, ImageReader, Rgb, RgbImage, buffer::ConvertBuffer};
 use pzpr_codec::{
     grid::{Grid, Gridlike},
     variety::yinyang::{self, Cell},
 };
+use yin_yang_extractor::{AnalyzeCells, AnalyzeGridBounds, AnalyzeGridPitch, AnalyzePuzzle};
 
 #[derive(Parser)]
 struct Cli {
@@ -65,56 +66,113 @@ fn main() {
     let grid_common =
         yin_yang_extractor::analyze_grid_common(&img).expect("analyze_grid_common failed");
     log::debug!("analyze_grid_common() -> {:?}", grid_common);
+
     let grid_pitch = yin_yang_extractor::analyze_grid_pitch(&img, &grid_common)
         .expect("analyze_grid_pitch failed");
     log::debug!("analyze_grid_pitch() -> {:?}", grid_pitch);
+
     let grid_bounds = yin_yang_extractor::analyze_grid_bounds(&img, &grid_common, &grid_pitch)
         .expect("analyze_grid_bounds failed");
     log::debug!("analyze_grid_bounds() -> {:?}", grid_bounds);
+
+    debug_output(
+        &img,
+        &cli.debug_output,
+        &grid_pitch,
+        &grid_bounds,
+        None,
+        None,
+    );
+
     let cells = yin_yang_extractor::analyze_cells(&img, &grid_pitch, &grid_bounds)
         .expect("analyze_cells failed");
     log::debug!("analyze_cells() -> {:?}", cells);
+
+    debug_output(
+        &img,
+        &cli.debug_output,
+        &grid_pitch,
+        &grid_bounds,
+        Some(&cells),
+        None,
+    );
+
     let puzzle = yin_yang_extractor::analyze_puzzle(&cells).expect("analyze_puzzle failed");
     log::debug!("analyze_puzzle() -> {:?}", puzzle);
 
-    if let Some(out_fname) = cli.debug_output {
-        let mut out: RgbImage = img.convert();
-        let cell = grid_pitch.size;
-        let rect = grid_bounds.bounds;
+    debug_output(
+        &img,
+        &cli.debug_output,
+        &grid_pitch,
+        &grid_bounds,
+        Some(&cells),
+        Some(&puzzle),
+    );
 
-        let blue: Rgb<u8> = [0, 0, 255].into();
-        let rows = ((rect.y1 - rect.y0) as f32 / cell.h).round() as usize;
-        for row in 1..rows {
-            let y = rect.y0 + (row as f32 * cell.h).round() as usize;
-            for x in rect.x0..rect.x1 {
-                out.put_pixel(x as u32, y as u32, blue);
-            }
-        }
-        let cols = ((rect.x1 - rect.x0) as f32 / cell.w).round() as usize;
-        for col in 1..cols {
-            let x = rect.x0 + (col as f32 * cell.w).round() as usize;
-            for y in rect.y0..rect.y1 {
-                out.put_pixel(x as u32, y as u32, blue);
-            }
-        }
+    cli.format
+        .unwrap_or(OutputFormat::Ascii)
+        .display(&puzzle.grid);
+}
 
-        let red: Rgb<u8> = [255, 0, 0].into();
+fn debug_output(
+    img: &GrayImage,
+    out_fname: &Option<String>,
+    grid_pitch: &AnalyzeGridPitch,
+    grid_bounds: &AnalyzeGridBounds,
+    cells: Option<&AnalyzeCells>,
+    puzzle: Option<&AnalyzePuzzle>,
+) {
+    let Some(out_fname) = out_fname else {
+        return;
+    };
+
+    let mut out: RgbImage = img.convert();
+    let cell = grid_pitch.size;
+    let rect = grid_bounds.bounds;
+
+    let blue: Rgb<u8> = [0, 0, 255].into();
+    let rows = ((rect.y1 - rect.y0) as f32 / cell.h).round() as usize;
+    for row in 1..rows {
+        let y = rect.y0 + (row as f32 * cell.h).round() as usize;
         for x in rect.x0..rect.x1 {
-            out.put_pixel(x as u32, rect.y0 as u32, red);
-            out.put_pixel(x as u32, rect.y1 as u32, red);
+            out.put_pixel(x as u32, y as u32, blue);
         }
+    }
+    let cols = ((rect.x1 - rect.x0) as f32 / cell.w).round() as usize;
+    for col in 1..cols {
+        let x = rect.x0 + (col as f32 * cell.w).round() as usize;
         for y in rect.y0..rect.y1 {
-            out.put_pixel(rect.x0 as u32, y as u32, red);
-            out.put_pixel(rect.x1 as u32, y as u32, red);
+            out.put_pixel(x as u32, y as u32, blue);
         }
+    }
 
-        for (i, _) in cells.cell_classes.iter().enumerate() {
+    let red: Rgb<u8> = [255, 0, 0].into();
+    for x in rect.x0..rect.x1 {
+        out.put_pixel(x as u32, rect.y0 as u32, red);
+        out.put_pixel(x as u32, rect.y1 as u32, red);
+    }
+    for y in rect.y0..rect.y1 {
+        out.put_pixel(rect.x0 as u32, y as u32, red);
+        out.put_pixel(rect.x1 as u32, y as u32, red);
+    }
+
+    if let Some(cells) = cells {
+        for (i, cls) in cells.cell_classes.iter().enumerate() {
             let cell_row = (i / cells.cols) as isize;
             let cell_col = (i % cells.cols) as isize;
-            let color: Rgb<u8> = match puzzle.grid.rc(cell_row, cell_col) {
-                Cell::Empty => [0, 255, 0].into(),
-                Cell::Black => [0, 0, 255].into(),
-                Cell::White => [255, 0, 0].into(),
+            let color: Rgb<u8> = if let Some(puzzle) = puzzle {
+                match puzzle.grid.rc(cell_row, cell_col) {
+                    Cell::Empty => [0, 255, 0].into(),
+                    Cell::Black => [0, 0, 255].into(),
+                    Cell::White => [255, 0, 0].into(),
+                }
+            } else {
+                match cls {
+                    0 => [255, 128, 128].into(),
+                    1 => [128, 255, 128].into(),
+                    2 => [128, 128, 255].into(),
+                    _ => [255, 255, 128].into(),
+                }
             };
             let cell_x = (rect.x0 as f32 + cell.w * (cell_col as f32 + 0.3)) as u32;
             let cell_y = (rect.y0 as f32 + cell.h * (cell_row as f32 + 0.3)) as u32;
@@ -126,13 +184,9 @@ fn main() {
                 }
             }
         }
-
-        out.save_with_format(&out_fname, ImageFormat::Png)
-            .expect("could not save debug output");
-        log::info!("wrote debug output to {out_fname}");
     }
 
-    cli.format
-        .unwrap_or(OutputFormat::Ascii)
-        .display(&puzzle.grid);
+    out.save_with_format(&out_fname, ImageFormat::Png)
+        .expect("could not save debug output");
+    log::info!("wrote debug output to {out_fname}");
 }
