@@ -5,7 +5,7 @@ use pzpr_codec::{
     variety::yinyang::Cell,
 };
 
-use crate::AnalyzeCells;
+use crate::{AnalyzeCells, AnalyzeResult};
 
 pub struct AnalyzePuzzle {
     pub grid: Grid<Cell>,
@@ -17,10 +17,10 @@ impl fmt::Debug for AnalyzePuzzle {
     }
 }
 
-pub fn analyze_puzzle(cells: &AnalyzeCells) -> AnalyzePuzzle {
-    let empty0 = make_grid(cells, 0, 1, 2);
-    let empty1 = make_grid(cells, 1, 2, 0);
-    let empty2 = make_grid(cells, 2, 0, 1);
+pub fn analyze_puzzle(cells: &AnalyzeCells) -> AnalyzeResult<AnalyzePuzzle> {
+    let empty0 = make_grid(cells, 0, 1, 2)?;
+    let empty1 = make_grid(cells, 1, 2, 0)?;
+    let empty2 = make_grid(cells, 2, 0, 1)?;
 
     let empty0_valid = is_valid(&empty0);
     let empty1_valid = is_valid(&empty1);
@@ -39,14 +39,19 @@ pub fn analyze_puzzle(cells: &AnalyzeCells) -> AnalyzePuzzle {
             empty1
         }
         (false, false, false) => {
-            panic!("no assignment of colors produces a valid grid");
+            return Err("no assignment of colors produces a valid grid".into());
         }
     };
 
-    AnalyzePuzzle { grid }
+    Ok(AnalyzePuzzle { grid })
 }
 
-fn make_grid(cells: &AnalyzeCells, empty: usize, color_a: usize, color_b: usize) -> Grid<Cell> {
+fn make_grid(
+    cells: &AnalyzeCells,
+    empty: usize,
+    color_a: usize,
+    color_b: usize,
+) -> AnalyzeResult<Grid<Cell>> {
     let (black, white) = {
         let color_a_sum: f32 = cells.centroids[color_a].data.iter().sum();
         let color_b_sum: f32 = cells.centroids[color_b].data.iter().sum();
@@ -63,14 +68,14 @@ fn make_grid(cells: &AnalyzeCells, empty: usize, color_a: usize, color_b: usize)
         .cell_classes
         .iter()
         .map(|cls| match *cls {
-            i if i == empty => Cell::Empty,
-            i if i == black => Cell::Black,
-            i if i == white => Cell::White,
-            i => panic!("unknown cell class {i}"),
+            i if i == empty => Ok(Cell::Empty),
+            i if i == black => Ok(Cell::Black),
+            i if i == white => Ok(Cell::White),
+            i => Err(format!("unknown cell class {i}").into()),
         })
-        .collect::<Grid<Cell>>()
+        .collect::<AnalyzeResult<Grid<Cell>>>()?
         .reshape(rows, cols)
-        .unwrap()
+        .map_err(|e| format!("reshape failed: {e:?}").into())
 }
 
 fn is_valid(grid: &Grid<Cell>) -> bool {

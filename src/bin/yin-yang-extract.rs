@@ -62,15 +62,19 @@ fn main() {
         .into_luma8();
 
     log::info!("analyzing {}", cli.input);
-    let grid_common = yin_yang_extractor::analyze_grid_common(&img);
+    let grid_common =
+        yin_yang_extractor::analyze_grid_common(&img).expect("analyze_grid_common failed");
     log::debug!("analyze_grid_common() -> {:?}", grid_common);
-    let grid_pitch = yin_yang_extractor::analyze_grid_pitch(&img, &grid_common);
+    let grid_pitch = yin_yang_extractor::analyze_grid_pitch(&img, &grid_common)
+        .expect("analyze_grid_pitch failed");
     log::debug!("analyze_grid_pitch() -> {:?}", grid_pitch);
-    let grid_bounds = yin_yang_extractor::analyze_grid_bounds(&img, &grid_common, &grid_pitch);
+    let grid_bounds = yin_yang_extractor::analyze_grid_bounds(&img, &grid_common, &grid_pitch)
+        .expect("analyze_grid_bounds failed");
     log::debug!("analyze_grid_bounds() -> {:?}", grid_bounds);
-    let cells = yin_yang_extractor::analyze_cells(&img, &grid_pitch, &grid_bounds);
+    let cells = yin_yang_extractor::analyze_cells(&img, &grid_pitch, &grid_bounds)
+        .expect("analyze_cells failed");
     log::debug!("analyze_cells() -> {:?}", cells);
-    let puzzle = yin_yang_extractor::analyze_puzzle(&cells);
+    let puzzle = yin_yang_extractor::analyze_puzzle(&cells).expect("analyze_puzzle failed");
     log::debug!("analyze_puzzle() -> {:?}", puzzle);
 
     if let Some(out_fname) = cli.debug_output {

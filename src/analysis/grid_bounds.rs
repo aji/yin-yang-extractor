@@ -1,7 +1,7 @@
 use image::GrayImage;
 
 use crate::{
-    AnalyzeGridCommon, AnalyzeGridPitch, AnalyzeReducedAxis, geom,
+    AnalyzeGridCommon, AnalyzeGridPitch, AnalyzeReducedAxis, AnalyzeResult, geom,
     math::{ZeroSampler, standard_normal},
 };
 
@@ -14,7 +14,7 @@ pub fn analyze_grid_bounds(
     _img: &GrayImage,
     common: &AnalyzeGridCommon,
     pitch: &AnalyzeGridPitch,
-) -> AnalyzeGridBounds {
+) -> AnalyzeResult<AnalyzeGridBounds> {
     let (offset_x, count_x) = analyze_grid_bounds_axis(&common.reduced_row, pitch.size.w);
     let (offset_y, count_y) = analyze_grid_bounds_axis(&common.reduced_col, pitch.size.h);
 
@@ -25,9 +25,9 @@ pub fn analyze_grid_bounds(
     )
         .into();
 
-    AnalyzeGridBounds {
+    Ok(AnalyzeGridBounds {
         bounds: (offset, size).into(),
-    }
+    })
 }
 
 fn analyze_grid_bounds_axis(axis: &AnalyzeReducedAxis, pitch: f32) -> (usize, usize) {

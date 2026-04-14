@@ -2,7 +2,7 @@ use std::fmt;
 
 use image::GrayImage;
 
-use crate::{AnalyzeGridBounds, AnalyzeGridPitch, pixel::PixelExt};
+use crate::{AnalyzeGridBounds, AnalyzeGridPitch, AnalyzeResult, pixel::PixelExt};
 
 pub struct AnalyzeCells {
     pub cols: usize,
@@ -20,7 +20,7 @@ pub fn analyze_cells(
     img: &GrayImage,
     pitch: &AnalyzeGridPitch,
     bounds: &AnalyzeGridBounds,
-) -> AnalyzeCells {
+) -> AnalyzeResult<AnalyzeCells> {
     let crop = 0.06;
 
     let cell_w = (pitch.size.w * (1.0 - 2.0 * crop)).round() as u32;
@@ -46,14 +46,18 @@ pub fn analyze_cells(
         }
     }
 
+    if cells.is_empty() {
+        return Err("no cells extracted from image".into());
+    }
+
     let (centroids, classes) = make_centroids(&cells[..]);
 
-    AnalyzeCells {
+    Ok(AnalyzeCells {
         cols: cell_cols,
         centroids,
         cells,
         cell_classes: classes,
-    }
+    })
 }
 
 fn make_centroids(cells: &[AnalyzeCell]) -> (Vec<AnalyzeCell>, Vec<usize>) {

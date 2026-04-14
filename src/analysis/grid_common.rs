@@ -3,6 +3,7 @@ use std::fmt;
 use image::GrayImage;
 
 use crate::{
+    AnalyzeResult,
     math::{self, Array, HoldSampler},
     pixel::PixelExt,
 };
@@ -32,7 +33,11 @@ pub struct AnalyzeReducedAxis {
     pub laplace_autocorr: Array,
 }
 
-pub fn analyze_grid_common(img: &GrayImage) -> AnalyzeGridCommon {
+pub fn analyze_grid_common(img: &GrayImage) -> AnalyzeResult<AnalyzeGridCommon> {
+    if img.width() == 0 || img.height() == 0 {
+        return Err("empty image".into());
+    }
+
     let mut reduced_x: Vec<f32> = Vec::new();
     let mut reduced_y: Vec<f32> = Vec::new();
 
@@ -49,18 +54,14 @@ pub fn analyze_grid_common(img: &GrayImage) -> AnalyzeGridCommon {
         reduced_y.push(sum / img.height() as f32);
     }
 
-    AnalyzeGridCommon {
+    Ok(AnalyzeGridCommon {
         reduced_col: AnalyzeReducedAxis::new(reduced_x),
         reduced_row: AnalyzeReducedAxis::new(reduced_y),
-    }
+    })
 }
 
 impl AnalyzeReducedAxis {
     fn new(values: Vec<f32>) -> AnalyzeReducedAxis {
-        if values.len() == 0 {
-            panic!("empty reduced axis analysis input");
-        }
-
         let sampler = HoldSampler::new(&values[..]);
         let laplace: Vec<f32> = (0..values.len() as isize)
             .map(|i| sampler.get(i - 1) + sampler.get(i + 1) - 2.0 * sampler.get(i))

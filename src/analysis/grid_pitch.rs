@@ -1,21 +1,24 @@
 use image::GrayImage;
 
-use crate::{AnalyzeGridCommon, AnalyzeReducedAxis, math};
+use crate::{AnalyzeGridCommon, AnalyzeReducedAxis, AnalyzeResult, math};
 
 #[derive(Debug)]
 pub struct AnalyzeGridPitch {
     pub size: crate::geom::Size<f32>,
 }
 
-pub fn analyze_grid_pitch(_img: &GrayImage, common: &AnalyzeGridCommon) -> AnalyzeGridPitch {
+pub fn analyze_grid_pitch(
+    _img: &GrayImage,
+    common: &AnalyzeGridCommon,
+) -> AnalyzeResult<AnalyzeGridPitch> {
     let pitch_x = analyze_grid_pitch_axis(&common.reduced_row);
     let pitch_y = analyze_grid_pitch_axis(&common.reduced_col);
 
     let pitch = make_square(pitch_x, pitch_y);
 
-    AnalyzeGridPitch {
+    Ok(AnalyzeGridPitch {
         size: (pitch, pitch).into(),
-    }
+    })
 }
 
 fn analyze_grid_pitch_axis(axis: &AnalyzeReducedAxis) -> f32 {
