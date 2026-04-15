@@ -1,14 +1,12 @@
 use std::fmt;
 
-use pzpr_codec::{
-    grid::{Grid, Gridlike},
-    variety::yinyang::Cell,
-};
+use puzzle_grid::array::ArrayBuffer;
+use pzpr_codec::yinyang::Cell;
 
 use crate::{AnalyzeCells, AnalyzeResult};
 
 pub struct AnalyzePuzzle {
-    pub grid: Grid<Cell>,
+    pub grid: ArrayBuffer<Cell>,
 }
 
 impl fmt::Debug for AnalyzePuzzle {
@@ -51,7 +49,7 @@ fn make_grid(
     empty: usize,
     color_a: usize,
     color_b: usize,
-) -> AnalyzeResult<Grid<Cell>> {
+) -> AnalyzeResult<ArrayBuffer<Cell>> {
     let (black, white) = {
         let color_a_sum: f32 = cells.centroids[color_a].data.iter().sum();
         let color_b_sum: f32 = cells.centroids[color_b].data.iter().sum();
@@ -61,8 +59,8 @@ fn make_grid(
         }
     };
 
-    let rows = (cells.cells.len() / cells.cols) as isize;
-    let cols = cells.cols as isize;
+    let rows = cells.cells.len() / cells.cols;
+    let cols = cells.cols;
 
     cells
         .cell_classes
@@ -73,14 +71,14 @@ fn make_grid(
             i if i == white => Ok(Cell::White),
             i => Err(format!("unknown cell class {i}").into()),
         })
-        .collect::<AnalyzeResult<Grid<Cell>>>()?
+        .collect::<AnalyzeResult<ArrayBuffer<Cell>>>()?
         .reshape(rows, cols)
-        .map_err(|e| format!("reshape failed: {e:?}").into())
+        .ok_or("reshape_failed".into())
 }
 
-fn is_valid(grid: &Grid<Cell>) -> bool {
-    for r in 1..grid.shape().rows() {
-        for c in 1..grid.shape().cols() {
+fn is_valid(grid: &ArrayBuffer<Cell>) -> bool {
+    for r in 1..grid.rows() {
+        for c in 1..grid.cols() {
             let g = grid.view(r - 1, c - 1, 2, 2);
             if g[0] == g[1] && g[0] == g[2] && g[0] == g[3] && g[0] != Cell::Empty {
                 return false;

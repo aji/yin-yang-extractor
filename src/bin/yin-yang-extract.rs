@@ -1,10 +1,9 @@
 use clap::{Parser, ValueEnum};
 use image::{GrayImage, ImageFormat, ImageReader, Rgb, RgbImage, buffer::ConvertBuffer};
-use pzpr_codec::{
-    grid::{Grid, Gridlike},
-    variety::yinyang::{self, Cell},
+use pzpr_codec::yinyang;
+use yin_yang_extractor::{
+    AnalyzeCells, AnalyzeGridBounds, AnalyzeGridPitch, AnalyzePuzzle, ArrayBuffer, Cell,
 };
-use yin_yang_extractor::{AnalyzeCells, AnalyzeGridBounds, AnalyzeGridPitch, AnalyzePuzzle};
 
 #[derive(Parser)]
 struct Cli {
@@ -25,15 +24,15 @@ enum OutputFormat {
 }
 
 impl OutputFormat {
-    fn display(&self, grid: &Grid<Cell>) {
+    fn display(&self, grid: &ArrayBuffer<Cell>) {
         match self {
             OutputFormat::Ascii => {
-                for r in 0..grid.shape().rows() {
-                    for c in 0..grid.shape().cols() {
+                for r in 0..grid.rows() {
+                    for c in 0..grid.cols() {
                         if c != 0 {
                             print!(" ");
                         }
-                        match grid.rc(r, c) {
+                        match grid[(r, c)] {
                             Cell::Empty => print!("."),
                             Cell::Black => print!("B"),
                             Cell::White => print!("W"),
@@ -158,10 +157,10 @@ fn debug_output(
 
     if let Some(cells) = cells {
         for (i, cls) in cells.cell_classes.iter().enumerate() {
-            let cell_row = (i / cells.cols) as isize;
-            let cell_col = (i % cells.cols) as isize;
+            let cell_row = i / cells.cols;
+            let cell_col = i % cells.cols;
             let color: Rgb<u8> = if let Some(puzzle) = puzzle {
-                match puzzle.grid.rc(cell_row, cell_col) {
+                match puzzle.grid[(cell_row, cell_col)] {
                     Cell::Empty => [0, 255, 0].into(),
                     Cell::Black => [0, 0, 255].into(),
                     Cell::White => [255, 0, 0].into(),

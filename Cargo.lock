@@ -441,6 +441,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "puzzle-grid"
+version = "0.1.0"
+source = "git+https://github.com/aji/puzzle-grid.git#6b8dcbd412274a7626382f93b967d5e368893866"
+
+[[package]]
 name = "pxfm"
 version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -449,7 +454,10 @@ checksum = "b5a041e753da8b807c9255f28de81879c78c876392ff2469cde94799b2896b9d"
 [[package]]
 name = "pzpr-codec"
 version = "0.1.0"
-source = "git+https://github.com/aji/pzpr-codec.git#0fb8c95a598f0160271c36b0510d1b1a4b4f79da"
+source = "git+https://github.com/aji/pzpr-codec.git#7dbb5625b83dc66eac5891a69aa88386f6ccdf18"
+dependencies = [
+ "puzzle-grid",
+]
 
 [[package]]
 name = "quote"
@@ -764,6 +772,7 @@ dependencies = [
  "env_logger",
  "image",
  "log",
+ "puzzle-grid",
  "pzpr-codec",
  "rand",
 ]
