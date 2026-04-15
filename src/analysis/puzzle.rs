@@ -1,12 +1,12 @@
 use std::fmt;
 
-use puzzle_grid::array::ArrayBuffer;
+use puzzle_grid::array::ArrayVec;
 use pzpr_codec::yinyang::Cell;
 
 use crate::{AnalyzeCells, AnalyzeResult};
 
 pub struct AnalyzePuzzle {
-    pub grid: ArrayBuffer<Cell>,
+    pub grid: ArrayVec<Cell>,
 }
 
 impl fmt::Debug for AnalyzePuzzle {
@@ -49,7 +49,7 @@ fn make_grid(
     empty: usize,
     color_a: usize,
     color_b: usize,
-) -> AnalyzeResult<ArrayBuffer<Cell>> {
+) -> AnalyzeResult<ArrayVec<Cell>> {
     let (black, white) = {
         let color_a_sum: f32 = cells.centroids[color_a].data.iter().sum();
         let color_b_sum: f32 = cells.centroids[color_b].data.iter().sum();
@@ -71,12 +71,12 @@ fn make_grid(
             i if i == white => Ok(Cell::White),
             i => Err(format!("unknown cell class {i}").into()),
         })
-        .collect::<AnalyzeResult<ArrayBuffer<Cell>>>()?
+        .collect::<AnalyzeResult<ArrayVec<Cell>>>()?
         .reshape(rows, cols)
         .ok_or("reshape_failed".into())
 }
 
-fn is_valid(grid: &ArrayBuffer<Cell>) -> bool {
+fn is_valid(grid: &ArrayVec<Cell>) -> bool {
     for r in 1..grid.rows() {
         for c in 1..grid.cols() {
             let g = grid.view(r - 1, c - 1, 2, 2);

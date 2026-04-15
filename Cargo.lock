@@ -116,9 +116,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.6.0"
+version = "4.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b193af5b67834b676abd72466a96c1024e6a6ad978a1f484bd90b85c94041351"
+checksum = "1ddb117e43bbf7dacf0a4190fef4d345b9bad68dfc649cb349e7d17d28428e51"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -138,9 +138,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.6.0"
+version = "4.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1110bd8a634a1ab8cb04345d8d878267d57c3cf1b38d91b71af6686408bbca6a"
+checksum = "f2ce8604710f6733aa641a2b3731eaa1e8b3d9973d5e3565da11800813f997a9"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -443,7 +443,7 @@ dependencies = [
 [[package]]
 name = "puzzle-grid"
 version = "0.1.0"
-source = "git+https://github.com/aji/puzzle-grid.git#6b8dcbd412274a7626382f93b967d5e368893866"
+source = "git+https://github.com/aji/puzzle-grid.git#238056f14ea2f2490b0ac0e6a4bd1ac9612a9c9e"
 
 [[package]]
 name = "pxfm"
@@ -454,7 +454,7 @@ checksum = "b5a041e753da8b807c9255f28de81879c78c876392ff2469cde94799b2896b9d"
 [[package]]
 name = "pzpr-codec"
 version = "0.1.0"
-source = "git+https://github.com/aji/pzpr-codec.git#7dbb5625b83dc66eac5891a69aa88386f6ccdf18"
+source = "git+https://github.com/aji/pzpr-codec.git#fa2b7d847884897f3336e4b8aaffbec2bb1ad35f"
 dependencies = [
  "puzzle-grid",
 ]

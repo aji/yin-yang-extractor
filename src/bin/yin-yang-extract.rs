@@ -2,7 +2,7 @@ use clap::{Parser, ValueEnum};
 use image::{GrayImage, ImageFormat, ImageReader, Rgb, RgbImage, buffer::ConvertBuffer};
 use pzpr_codec::yinyang;
 use yin_yang_extractor::{
-    AnalyzeCells, AnalyzeGridBounds, AnalyzeGridPitch, AnalyzePuzzle, ArrayBuffer, Cell,
+    AnalyzeCells, AnalyzeGridBounds, AnalyzeGridPitch, AnalyzePuzzle, ArrayVec, Cell,
 };
 
 #[derive(Parser)]
@@ -24,7 +24,7 @@ enum OutputFormat {
 }
 
 impl OutputFormat {
-    fn display(&self, grid: &ArrayBuffer<Cell>) {
+    fn display(&self, grid: &ArrayVec<Cell>) {
         match self {
             OutputFormat::Ascii => {
                 for r in 0..grid.rows() {
